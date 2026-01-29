@@ -1,0 +1,39 @@
+name: Autograding Tests
+'on':
+- push
+- repository_dispatch
+permissions:
+  checks: write
+  actions: read
+  contents: read
+jobs:
+  run-autograding-tests:
+    runs-on: ubuntu-latest
+    if: github.actor != 'github-classroom[bot]'
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    - name: Test with correct components
+      id: test-with-correct-components
+      uses: classroom-resources/autograding-command-grader@v1
+      with:
+        test-name: Test with correct components
+        setup-command: npm install
+        command: CI=true npm test
+        timeout: 10
+    - name: Test with broken components
+      id: test-with-broken-components
+      uses: classroom-resources/autograding-command-grader@v1
+      with:
+        test-name: Test with broken components
+        setup-command: rm -rf src/components && git clone https://github.com/ita-react-react-testing-library/react-testing-library-test
+          src/components && npm install
+        command: CI=true npm test testForTest.test.js
+        timeout: 10
+    - name: Autograding Reporter
+      uses: classroom-resources/autograding-grading-reporter@v1
+      env:
+        TEST-WITH-CORRECT-COMPONENTS_RESULTS: "${{steps.test-with-correct-components.outputs.result}}"
+        TEST-WITH-BROKEN-COMPONENTS_RESULTS: "${{steps.test-with-broken-components.outputs.result}}"
+      with:
+        runners: test-with-correct-components,test-with-broken-components
